@@ -21,6 +21,9 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from tensorboardX import SummaryWriter
 
+mlflow.set_tracking_uri("http://mlflow:5000")
+mlflow.set_experiment("finrl")
+
 # Command-line arguments
 parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
 parser.add_argument(
@@ -230,7 +233,8 @@ with mlflow.start_run():
 
     # Extract a few examples from the test dataset to evaluate on
     eval_data, eval_labels = next(iter(test_loader))
-
+    if args.cuda:
+        eval_data, eval_labels = eval_data.cuda(), eval_labels.cuda() # add this line
     # Make a few predictions
     predictions = loaded_model(eval_data).data.max(1)[1]
     template = 'Sample {} : Ground truth is "{}", model prediction is "{}"'

@@ -2,8 +2,11 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from env_multiple_crypto import CryptoEnv
-from env_advance_crypto import AdvCryptoEnv
+#from env_multiple_crypto import CryptoEnv
+#from env_advance_crypto import AdvCryptoEnv
+from finrl.meta.env_cryptocurrency_trading.env_multiple_crypto import CryptoEnv
+from finrl.meta.env_cryptocurrency_trading.env_advance_crypto import AdvCryptoEnv
+
 from finrl.agents.elegantrl.models import DRLAgent as DRLAgent_erl
 from finrl.agents.stablebaselines3.models import DRLAgent as DRLAgent_sb3
 from finrl.meta.data_processor import DataProcessor

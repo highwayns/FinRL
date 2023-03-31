@@ -18,7 +18,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 from torchvision import datasets, transforms
+import tensorboardX
 from tensorboardX import SummaryWriter
 import mlflow.pyfunc
 import cloudpickle
@@ -219,18 +221,14 @@ class MnistModel(mlflow.pyfunc.PythonModel):
 
     def predict(self, context, model_input):
         # Apply the preprocess function from the vader model to score
-        model_output = model_input.apply(lambda col: self._score(col))
+        # model_output = model_input.apply_(lambda col: self._score(col))
+        model_output = self._score(model_input)
         return model_output
 
-model_path = "mnist"
+model_path = "model"
 reg_model_name = "PyFuncMnist"
 mnist_model = MnistModel()
 
-# Set the tracking URI to use local SQLAlchemy db file and start the run
-# Log MLflow entities and save the model
-# mlflow.set_tracking_uri("sqlite:///mlruns.db")
-
-# Save the conda environment for this model.
 conda_env = {
     'channels': ['defaults', 'conda-forge'],
     'dependencies': [
@@ -246,30 +244,37 @@ conda_env = {
     ],
     'name': 'mlflow-env'
 }
+# Set the tracking URI to use local SQLAlchemy db file and start the run
+# Log MLflow entities and save the model
+# mlflow.set_tracking_uri("sqlite:///mlruns.db")
 
-# Save the model
-with mlflow.start_run(run_name="MNIST Analysis") as run:
-    model_path = f"{model_path}-{run.info.run_uuid}"
-    # Log our parameters into mlflow
-    for key, value in vars(args).items():
-        mlflow.log_param(key, value)
+# Log our parameters into mlflow
+for key, value in vars(args).items():
+    mlflow.log_param(key, value)
 
-    # Perform the training
-    for epoch in range(1, args.epochs + 1):
-        mnist_model.train(epoch)
-        mnist_model.test(epoch)
+# Perform the training
+for epoch in range(1, args.epochs + 1):
+    mnist_model.train(epoch)
+    mnist_model.test(epoch)
 
-    mlflow.pyfunc.save_model(path=model_path, python_model=mnist_model, conda_env=conda_env)
+# Edited by Edward 
+# SummaryWriter is not supported by mlflow so remove before log_model
+mnist_model.writer = None
+
+# Edited by Edward 
+# save_model is commented out
+# mlflow.pyfunc.save_model(path=model_path, python_model=mnist_model, conda_env=conda_env)
 
 # Use the saved model path to log and register into the model registry
-mlflow.pyfunc.log_model(artifact_path=model_path,
+model_info = mlflow.pyfunc.log_model(artifact_path=model_path,
                         python_model=mnist_model,
                         registered_model_name=reg_model_name,
-                        conda_env=conda_env)
+                        conda_env=conda_env
+                        )
 
 # Load the model from the model registry and score
-model_uri = f"models:/{reg_model_name}/1"
-loaded_model = mlflow.pyfunc.load_model(model_uri)
+# model_uri = f"models:/{reg_model_name}/1"
+loaded_model = mlflow.pyfunc.load_model(model_info.model_uri)
 
 # Extract a few examples from the test dataset to evaluate on
 eval_data, eval_labels = next(iter(test_loader))
